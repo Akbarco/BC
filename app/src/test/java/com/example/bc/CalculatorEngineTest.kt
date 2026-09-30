@@ -18,18 +18,17 @@ class CalculatorEngineTest {
         state = CalculatorEngine.onAction(state, CalculatorAction.Operation(CalculatorOperation.ADD))
         state = CalculatorEngine.onAction(state, CalculatorAction.Number(3))
         
-        // Before Calculate: expression shown on top, preview on bottom
-        assertEquals("5 + 3", state.topDisplay)
-        assertEquals("8", state.bottomDisplay)
+        // Sebelum calculate: menampilkan rumus yang sedang diketik tanpa bocoran jawaban
+        assertEquals("5 + 3", state.bottomDisplay)
 
         state = CalculatorEngine.onAction(state, CalculatorAction.Calculate)
 
-        // After Calculate: top operation is cleared, bottom display has the final result
-        assertEquals("", state.topDisplay)
+        // Setelah calculate: menampilkan hasil akhir
         assertEquals("8", state.bottomDisplay)
         assertTrue(state.isEvaluated)
         assertFalse(state.isError)
     }
+
 
 
     @Test
