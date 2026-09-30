@@ -8,29 +8,23 @@ data class CalculatorState(
     val errorMessage: String = ""
 ) {
     /**
-     * Display baris atas: Menampilkan rumus / ekspresi perhitungan yang sedang diketik
-     * (misal "888 × 9"). Saat ditekan '=', operasi hilang (menjadi kosong).
+     * Display baris atas (tidak ada preview jawaban sebelum berlangganan)
      */
     val topDisplay: String
         get() = when {
             isError -> expression
-            isEvaluated -> "" // Rumus hilang setelah klik '='
-            expression.contains(" ") || expression.contains("+") || expression.contains("−") || expression.contains("×") || expression.contains("÷") -> expression
             else -> ""
         }
 
     /**
-     * Display baris bawah: Menampilkan hasil perhitungan (live preview atau hasil final atau angka aktif).
+     * Display baris utama: Menampilkan rumus ekspresi yang sedang diketik tanpa bocoran jawaban,
+     * dan menampilkan hasil setelah tombol '=' ditekan dan dibayar.
      */
     val bottomDisplay: String
         get() = when {
             isError -> errorMessage
             isEvaluated && expression.isNotEmpty() -> expression
-            isEvaluated && liveResult.isNotEmpty() -> liveResult
-            expression.contains(" ") && liveResult.isNotEmpty() -> liveResult
             expression.isNotEmpty() -> expression
             else -> "0"
         }
 }
-
-
