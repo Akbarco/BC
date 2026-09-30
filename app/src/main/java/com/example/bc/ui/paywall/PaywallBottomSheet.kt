@@ -1,13 +1,13 @@
 package com.example.bc.ui.paywall
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -31,7 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
@@ -56,7 +55,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.bc.ui.theme.DarkBackground
 import com.example.bc.ui.theme.DarkSurface
 import com.example.bc.ui.theme.ExpressionColor
 import com.example.bc.ui.theme.OperatorBtnBg
@@ -78,7 +76,7 @@ fun PaywallBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     var selectedPlanId by remember { mutableStateOf("pro") }
-    var selectedPaymentMethod by remember { mutableStateOf("QRIS Instant") }
+    var selectedBrand by remember { mutableStateOf(PaymentBrand.GOPAY) }
     var paymentState by remember { mutableStateOf(PaymentState.SELECTING) }
     var loadingMessage by remember { mutableStateOf("Menghubungi Server Bank...") }
 
@@ -173,9 +171,9 @@ fun PaywallBottomSheet(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Payment Methods Selector
+                        // Authentic Payment Methods Selector (GoPay, QRIS, DANA, BCA)
                         Text(
-                            text = "Metode Pembayaran",
+                            text = "Pilih Metode Pembayaran",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = ExpressionColor,
@@ -184,43 +182,13 @@ fun PaywallBottomSheet(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf("QRIS Instant", "GoPay", "DANA", "Credit Card").forEach { method ->
-                                val isSelectedMethod = method == selectedPaymentMethod
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelectedMethod) Color(0xFF27272A) else Color(0xFF18181B)
-                                        )
-                                        .border(
-                                            BorderStroke(
-                                                1.dp,
-                                                if (isSelectedMethod) OperatorBtnBg else Color(0xFF3F3F46)
-                                            ),
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .clickable {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            selectedPaymentMethod = method
-                                        }
-                                        .padding(vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = method,
-                                        fontSize = 10.sp,
-                                        fontWeight = if (isSelectedMethod) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelectedMethod) Color.White else ExpressionColor,
-                                        maxLines = 1
-                                    )
-                                }
+                        PaymentMethodSelector(
+                            selectedBrand = selectedBrand,
+                            onSelect = { brand ->
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                selectedBrand = brand
                             }
-                        }
+                        )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -231,15 +199,15 @@ fun PaywallBottomSheet(
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 paymentState = PaymentState.PROCESSING
                                 coroutineScope.launch {
-                                    loadingMessage = "Menghubungi Server Bank..."
+                                    loadingMessage = "Menghubungi Server ${selectedBrand.brandName}..."
                                     delay(900)
                                     loadingMessage = "Memverifikasi Transaksi ${selectedPlan.title}..."
                                     delay(900)
                                     loadingMessage = "Membuka Kunci Jawaban..."
-                                    delay(600)
+                                    delay(500)
                                     paymentState = PaymentState.SUCCESS
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    delay(1200)
+                                    delay(1600)
                                     onPaymentSuccess()
                                 }
                             },
@@ -253,7 +221,7 @@ fun PaywallBottomSheet(
                                 .height(52.dp)
                         ) {
                             Text(
-                                text = "⚡ Bayar ${selectedPlan.price} & Buka Hasil",
+                                text = "⚡ Bayar via ${selectedBrand.brandName} (${selectedPlan.price})",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -274,7 +242,7 @@ fun PaywallBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 48.dp),
+                            .padding(horizontal = 24.dp, vertical = 52.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -305,40 +273,80 @@ fun PaywallBottomSheet(
                 }
 
                 PaymentState.SUCCESS -> {
-                    Column(
+                    var isScaled by remember { mutableStateOf(false) }
+                    val scale by animateFloatAsState(
+                        targetValue = if (isScaled) 1f else 0.2f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "SuccessCheckScale"
+                    )
+
+                    LaunchedEffect(Unit) {
+                        isScaled = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        delay(200)
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .height(280.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF30D158))
+                        // Confetti explosion particles bursting across the view!
+                        ConfettiExplosion(particleCount = 75)
+
+                        // Pulse rings animation
+                        SuccessPulseRings(modifier = Modifier.size(160.dp))
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(horizontal = 24.dp)
                         ) {
-                            Text(text = "✓", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .scale(scale)
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(Color(0xFF30D158), Color(0xFF248A3D))
+                                        )
+                                    )
+                                    .border(BorderStroke(3.dp, Color(0xFF86EFAC)), CircleShape)
+                            ) {
+                                Text(
+                                    text = "✓",
+                                    fontSize = 38.sp,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            Text(
+                                text = "Pembayaran Berhasil! 🎉",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ResultColor
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "Paket ${selectedPlanId.uppercase()} Aktif! Kunci jawaban kalkulator terbuka.",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF4ADE80),
+                                textAlign = TextAlign.Center
+                            )
                         }
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        Text(
-                            text = "Pembayaran Berhasil! 🎉",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ResultColor
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = "Paket aktif! Kunci hasil kalkulator telah dibuka.",
-                            fontSize = 13.sp,
-                            color = Color(0xFF30D158),
-                            textAlign = TextAlign.Center
-                        )
                     }
                 }
             }
