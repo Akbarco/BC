@@ -11,7 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.bc.logic.CalculatorAction
@@ -20,14 +25,28 @@ import com.example.bc.logic.CalculatorState
 import com.example.bc.ui.components.ButtonType
 import com.example.bc.ui.components.CalculatorButton
 import com.example.bc.ui.components.CalculatorDisplay
+import com.example.bc.ui.paywall.PaywallBottomSheet
 import com.example.bc.ui.theme.DarkBackground
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalculatorScreen(
     state: CalculatorState,
     onAction: (CalculatorAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showPaywall by remember { mutableStateOf(false) }
+
+    if (showPaywall) {
+        PaywallBottomSheet(
+            onDismissRequest = { showPaywall = false },
+            onPaymentSuccess = {
+                showPaywall = false
+                onAction(CalculatorAction.Calculate)
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -247,10 +266,17 @@ fun CalculatorScreen(
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(1f),
-                onClick = { onAction(CalculatorAction.Calculate) }
+                onClick = {
+                    if (state.expression.isNotEmpty() && !state.isEvaluated) {
+                        showPaywall = true
+                    } else {
+                        onAction(CalculatorAction.Calculate)
+                    }
+                }
             )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
     }
 }
+
