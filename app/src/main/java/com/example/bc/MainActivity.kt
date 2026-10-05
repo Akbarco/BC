@@ -35,9 +35,29 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121214)
+@Preview(name = "Portrait", showBackground = true, backgroundColor = 0xFF121214)
 @Composable
 fun CalculatorPreview() {
+    BCTheme {
+        CalculatorScreen(
+            state = CalculatorState(
+                expression = "1,250 + 75 × 2",
+                liveResult = "1,400"
+            ),
+            onAction = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Landscape",
+    showBackground = true,
+    backgroundColor = 0xFF121214,
+    widthDp = 840,
+    heightDp = 390
+)
+@Composable
+fun CalculatorLandscapePreview() {
     BCTheme {
         CalculatorScreen(
             state = CalculatorState(

@@ -49,6 +49,8 @@ fun CalculatorButton(
     modifier: Modifier = Modifier,
     type: ButtonType = ButtonType.NUMBER,
     isWide: Boolean = false,
+    fontSize: androidx.compose.ui.unit.TextUnit? = null,
+    padding: androidx.compose.ui.unit.Dp = 6.dp,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
@@ -62,7 +64,7 @@ fun CalculatorButton(
         label = "ButtonScale"
     )
 
-    val (bgColor, textColor, fontSize, fontWeight) = when (type) {
+    val defaultStyle = when (type) {
         ButtonType.NUMBER -> ButtonStyle(
             bgColor = NumberBtnBg,
             textColor = NumberBtnText,
@@ -89,15 +91,16 @@ fun CalculatorButton(
         )
     }
 
+    val finalFontSize = fontSize ?: defaultStyle.fontSize
     val shape = if (isWide) RoundedCornerShape(40.dp) else CircleShape
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .padding(6.dp)
+            .padding(padding)
             .scale(scale)
             .clip(shape)
-            .background(bgColor, shape)
+            .background(defaultStyle.bgColor, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -108,9 +111,9 @@ fun CalculatorButton(
     ) {
         Text(
             text = symbol,
-            color = textColor,
-            fontSize = fontSize,
-            fontWeight = fontWeight
+            color = defaultStyle.textColor,
+            fontSize = finalFontSize,
+            fontWeight = defaultStyle.fontWeight
         )
     }
 }
