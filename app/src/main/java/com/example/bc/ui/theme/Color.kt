@@ -11,10 +11,10 @@ val NumberBtnText = Color(0xFFF5F5F7)
 val FunctionBtnBg = Color(0xFF3A3A3C)
 val FunctionBtnText = Color(0xFFE5E5EA)
 
-val OperatorBtnBg = Color(0xFFFF9F0A)
+val OperatorBtnBg = Color(0xFF02137D)
 val OperatorBtnText = Color(0xFFFFFFFF)
 
-val EqualsBtnBg = Color(0xFFFF9F0A)
+val EqualsBtnBg = Color(0xFF02137D)
 val EqualsBtnText = Color(0xFFFFFFFF)
 
 val ExpressionColor = Color(0xFF8E8E93)
